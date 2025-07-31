@@ -9,7 +9,7 @@ public class LocalDateConverter extends AbstractBeanField<String, LocalDate> {
 
     @Override
     protected LocalDate convert(String value) {
-        var formattedDate = LocalDate.parse(value, DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+        var formattedDate = LocalDate.parse(value, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
         return formattedDate;
     }
 }

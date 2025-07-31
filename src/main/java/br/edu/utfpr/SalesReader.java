@@ -8,10 +8,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.Month;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.Map.Entry;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
-
-import static java.util.stream.Collectors.*;
+import java.util.stream.Stream;
 
 public class SalesReader {
 
@@ -35,52 +34,104 @@ public class SalesReader {
     }
 
     public BigDecimal totalOfCompletedSales() {
-        // TODO implementar
-        return BigDecimal.ZERO;
+        var totalValueOfCompletedSales = sales.stream()
+                .filter(Sale::isCompleted)
+                .map(Sale::getValue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return totalValueOfCompletedSales;
     }
 
     public BigDecimal totalOfCancelledSales() {
-        // TODO implementar
-        return BigDecimal.ZERO;
+        var totalValueOfCancelledSales = sales.stream()
+                .filter(Sale::isCancelled)
+                .map(Sale::getValue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return totalValueOfCancelledSales;
     }
 
     public Optional<Sale> mostRecentCompletedSale() {
-        // TODO implementar
-        return Optional.empty();
+        var mostRecentCompletedSale = sales.stream()
+                .filter(Sale::isCompleted)
+                .sorted(Comparator.comparing(Sale::getDeliveryDate).reversed())
+                .findFirst();
+        return mostRecentCompletedSale;
     }
 
     public long daysBetweenFirstAndLastCancelledSale() {
-        // TODO implementar
-        return 0;
+        var daysBetween = ChronoUnit.DAYS.between(
+                sales.stream().filter(Sale::isCancelled).map(Sale::getSaleDate).min(Comparator.naturalOrder()).orElseThrow(),
+                sales.stream().filter(Sale::isCancelled).map(Sale::getSaleDate).max(Comparator.naturalOrder()).orElseThrow()
+        );
+        return daysBetween;
     }
 
     public BigDecimal totalCompletedSalesBySeller(String sellerName) {
-        // TODO implementar
-        return BigDecimal.ZERO;
+        var totalValueOfCompletedSalesBySeller = sales.stream()
+                .filter(Sale::isCompleted)
+                .filter(sale -> sale.getSeller().equals(sellerName))
+                .map(Sale::getValue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return totalValueOfCompletedSalesBySeller;
     }
 
     public long countAllSalesByManager(String managerName) {
-        // TODO implementar
-        return 0;
+        var allSalesByManager = sales.stream()
+                .filter(sale -> sale.getManager().equals(managerName))
+                .count();
+        return allSalesByManager;
     }
 
     public BigDecimal totalSalesByStatusAndMonth(Sale.Status status, Month... months) {
-        // TODO implementar
-        return BigDecimal.ZERO;
+        var totalSalesByStatusAndMonth = sales.stream()
+                .filter(sale -> sale.getStatus().equals(status))
+                .filter(sale -> Stream.of(months)
+                        .anyMatch(month -> month
+                                .equals(sale.getSaleDate().getMonth())))
+                .map(Sale::getValue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return totalSalesByStatusAndMonth;
     }
 
     public Map<String, Long> countCompletedSalesByDepartment() {
-        // TODO implementar
-        return Map.of();
+        var countCompletedSalesByDepartment = sales.stream()
+                .filter(Sale::isCompleted)
+                .collect(Collectors.groupingBy(
+                        Sale::getDepartment,
+                        Collectors.counting()
+                ));
+        return countCompletedSalesByDepartment;
     }
 
     public Map<Integer, Map<String, Long>> countCompletedSalesByPaymentMethodAndGroupingByYear() {
-        // TODO implementar
-        return Map.of();
+        var countCompletedSalesByPaymentMethodAndGroupingByYear = sales.stream()
+                .filter(Sale::isCompleted)
+                .collect(Collectors.groupingBy(
+                        sale -> sale.getSaleDate().getYear(),
+                        Collectors.groupingBy(
+                                Sale::getPaymentMethod,
+                                Collectors.counting()
+                        )
+                ));
+        return countCompletedSalesByPaymentMethodAndGroupingByYear;
     }
 
     public Map<String, BigDecimal> top3BestSellers() {
-        // TODO implementar
-        return Map.of();
+        return sales.stream()
+                .filter(Sale::isCompleted)
+                .collect(Collectors.groupingBy(
+                        Sale::getSeller,
+                        Collectors.reducing(BigDecimal.ZERO, Sale::getValue, BigDecimal::add)
+                ))
+                .entrySet().stream()
+                .sorted(Map.Entry.<String, BigDecimal>comparingByValue().reversed())
+                .limit(3)
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (e1, e2) -> e1,
+                        LinkedHashMap::new
+                ));
     }
+
+
 }
